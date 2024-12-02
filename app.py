@@ -26,6 +26,7 @@ def get_db_connection():
     return conn
 
 def init_db():
+    logging.info("init_db entered successfully.")
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -145,8 +146,4 @@ def list_logs():
         ]
     return jsonify(logs)
 
-if __name__ == '__main__':
-    logging.info("__main__ entered successfully.")
-    init_db()  # Initialize the database
-
-    #app.run(debug=True, threaded=True)
+init_db()  # Initialize the database
