@@ -38,7 +38,7 @@ def init_db():
                 );
             ''')
             
-            cursor.execute('DROP TABLE logs')
+            cursor.execute('DROP TABLE IF EXISTS logs')
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS logs (
