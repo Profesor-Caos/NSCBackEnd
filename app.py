@@ -1,10 +1,20 @@
 from datetime import datetime
 from flask import Flask, request, jsonify
-import sqlite3
+import psycopg2
+from psycopg2.extras import DictCursor
+import os
 import threading
 import queue
 
 app = Flask(__name__)
+
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+def get_db_connection():
+    """Create a new database connection."""
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=DictCursor)
+    return conn
+
 
 # Queue to hold log entries
 log_queue = queue.Queue()
@@ -13,7 +23,7 @@ log_queue = queue.Queue()
 BATCH_SIZE = 100
 
 def init_db():
-    with sqlite3.connect("db.sqlite3") as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("PRAGMA journal_mode=WAL") # Enable Write Ahead Logging for better write throughput
 
@@ -60,7 +70,7 @@ def process_queue():
 
 def write_logs_to_db(batch):
     """Batch insert logs into the database."""
-    with sqlite3.connect("db.sqlite3") as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.executemany(
             "INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES (?, ?, ?, ?)",
@@ -79,18 +89,18 @@ def add_student():
         return jsonify({"error": "StudentID is required"}), 400
 
     try:
-        with sqlite3.connect("db.sqlite3") as conn:
+        with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("INSERT INTO students (student_id) VALUES (?)", (student_id,))
             conn.commit()
         return jsonify({"message": "Student added successfully"}), 201
-    except sqlite3.IntegrityError:
-        return jsonify({"error": "StudentID already exists"}), 400
+    except psycopg2.Error as e:
+        return jsonify({"error": "StudentID already exists - " + str(e) }), 400
     
 # Endpoint to list all students
 @app.route('/students', methods=['GET'])
 def list_students():
-    with sqlite3.connect("db.sqlite3") as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM students")
         rows = cursor.fetchall()
@@ -122,7 +132,7 @@ def add_log():
 # Endpoint to get logs for a specific student
 @app.route('/logs/<string:student_id>', methods=['GET'])
 def get_logs_for_student(student_id):
-    with sqlite3.connect("db.sqlite3") as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM logs WHERE student_id = ?", (student_id,))
         logs = [
@@ -140,7 +150,7 @@ def get_logs_for_student(student_id):
 # Endpoint to list all logs
 @app.route('/logs', methods=['GET'])
 def list_logs():
-    with sqlite3.connect("db.sqlite3") as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM logs")
         logs = [
