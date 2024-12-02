@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Flask, request, jsonify
 import psycopg2
-from psycopg2.extras import DictCursor
+from psycopg2.extras import execute_values, DictCursor
 import os
 import threading
 import queue
@@ -25,12 +25,11 @@ BATCH_SIZE = 100
 def init_db():
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL") # Enable Write Ahead Logging for better write throughput
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL UNIQUE
+                id SERIAL PRIMARY KEY,
+                student_id TEXT UNIQUE NOT NULL
             );
         ''')
         
@@ -38,12 +37,11 @@ def init_db():
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                timestamp DATETIME NOT NULL,
+                id SERIAL PRIMARY KEY,
+                student_id TEXT NOT NULL REFERENCES students(student_id),
+                timestamp TIMESTAMP NOT NULL,
                 page_number INTEGER NOT NULL,
-                log_data TEXT NOT NULL,
-                FOREIGN KEY(student_id) REFERENCES students(student_id)
+                log_data TEXT NOT NULL
             );
         ''')
 
@@ -69,15 +67,20 @@ def process_queue():
             print(f"Error processing queue: {e}")
 
 def write_logs_to_db(batch):
-    """Batch insert logs into the database."""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.executemany(
-            "INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES (?, ?, ?, ?)",
-            batch
-        )
-        conn.commit()
-    print(f"Written {len(batch)} logs to the database.")
+    try:
+        """Batch insert logs into the database."""
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            execute_values(
+                cursor,
+                "INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES %s",
+                batch
+            )
+            conn.commit()
+        
+        return jsonify({"message": f"Inserted {len(batch)} log entries successfully"}), 201
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e)}), 500
 
 # Endpoint to add a new student
 @app.route('/students', methods=['POST'])
@@ -91,7 +94,7 @@ def add_student():
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO students (student_id) VALUES (?)", (student_id,))
+            cursor.execute("INSERT INTO students (student_id) VALUES (%s)", (student_id))
             conn.commit()
         return jsonify({"message": "Student added successfully"}), 201
     except psycopg2.Error as e:
@@ -134,7 +137,7 @@ def add_log():
 def get_logs_for_student(student_id):
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM logs WHERE student_id = ?", (student_id,))
+        cursor.execute("SELECT * FROM logs WHERE student_id = %s", (student_id,))
         logs = [
             {
                 "ID": row[0],
