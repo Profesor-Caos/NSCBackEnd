@@ -1,3 +1,5 @@
+import logging
+import sys
 from datetime import datetime
 from flask import Flask, request, jsonify
 import psycopg2
@@ -7,6 +9,16 @@ import threading
 import queue
 
 app = Flask(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),  # Send logs to stdout for Render to capture
+        logging.StreamHandler(sys.stderr)   # Optional: Send errors to stderr for Render's error logs
+    ]
+)
+
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 
@@ -23,29 +35,32 @@ log_queue = queue.Queue()
 BATCH_SIZE = 100
 
 def init_db():
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS students (
-                id SERIAL PRIMARY KEY,
-                student_id TEXT UNIQUE NOT NULL
-            );
-        ''')
-        
-        cursor.execute('DROP TABLE logs')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS students (
+                    id SERIAL PRIMARY KEY,
+                    student_id TEXT UNIQUE NOT NULL
+                );
+            ''')
+            
+            cursor.execute('DROP TABLE logs')
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS logs (
-                id SERIAL PRIMARY KEY,
-                student_id TEXT NOT NULL REFERENCES students(student_id),
-                timestamp TIMESTAMP NOT NULL,
-                page_number INTEGER NOT NULL,
-                log_data TEXT NOT NULL
-            );
-        ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS logs (
+                    id SERIAL PRIMARY KEY,
+                    student_id TEXT NOT NULL REFERENCES students(student_id),
+                    timestamp TIMESTAMP NOT NULL,
+                    page_number INTEGER NOT NULL,
+                    log_data TEXT NOT NULL
+                );
+            ''')
 
-        conn.commit()
+            conn.commit()
+    except Exception as e:
+        logging.error("Error initializing DB - " + str(e))
 
 # Worker function to process the log queue in batches
 def process_queue():
@@ -169,6 +184,7 @@ def list_logs():
     return jsonify(logs)
 
 if __name__ == '__main__':
+    logging.info("__main__ entered successfully.")
     init_db()  # Initialize the database
     
     # Start the worker thread for batch processing
