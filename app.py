@@ -5,8 +5,6 @@ from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2.extras import execute_values, DictCursor
 import os
-import threading
-import queue
 
 app = Flask(__name__)
 
@@ -26,13 +24,6 @@ def get_db_connection():
     """Create a new database connection."""
     conn = psycopg2.connect(DATABASE_URL, cursor_factory=DictCursor)
     return conn
-
-
-# Queue to hold log entries
-log_queue = queue.Queue()
-
-# Batch size for writing to the database
-BATCH_SIZE = 100
 
 def init_db():
     try:
@@ -61,41 +52,6 @@ def init_db():
             conn.commit()
     except Exception as e:
         logging.error("Error initializing DB - " + str(e))
-
-# Worker function to process the log queue in batches
-def process_queue():
-    while True:
-        try:
-            batch = []
-            while len(batch) < BATCH_SIZE:
-                log_entry = log_queue.get(timeout=1)  # Wait for new entries
-                if log_entry is None:  # Stop signal
-                    return
-                batch.append(log_entry)
-            
-            if batch:
-                write_logs_to_db(batch)
-        except queue.Empty:
-            if batch:
-                write_logs_to_db(batch)  # Write remaining logs if timeout
-        except Exception as e:
-            print(f"Error processing queue: {e}")
-
-def write_logs_to_db(batch):
-    try:
-        """Batch insert logs into the database."""
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            execute_values(
-                cursor,
-                "INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES %s",
-                batch
-            )
-            conn.commit()
-        
-        return jsonify({"message": f"Inserted {len(batch)} log entries successfully"}), 201
-    except psycopg2.Error as e:
-        return jsonify({"error": str(e)}), 500
 
 # Endpoint to add a new student
 @app.route('/students', methods=['POST'])
@@ -144,8 +100,14 @@ def add_log():
         return jsonify({"error": "Invalid Timestamp format. Use 'YYYY-MM-DD HH:MM:SS.FFF'"}), 400
 
      # Add the log entry to the queue
-    log_queue.put(item=(student_id, timestamp, page_number, log_data))
-    return jsonify({"message": "Log entry queued"}), 201
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES (%s, %s, %s, %s)", (student_id, timestamp, page_number, log_data))
+            conn.commit()
+        return jsonify({"message": "Student added successfully"}), 201
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e) }), 400
 
 # Endpoint to get logs for a specific student
 @app.route('/logs/<string:student_id>', methods=['GET'])
@@ -186,14 +148,5 @@ def list_logs():
 if __name__ == '__main__':
     logging.info("__main__ entered successfully.")
     init_db()  # Initialize the database
-    
-    # Start the worker thread for batch processing
-    worker_thread = threading.Thread(target=process_queue, daemon=True)
-    worker_thread.start()
 
-    try:
-        app.run(debug=True, threaded=True)
-    finally:
-        # Gracefully stop the worker thread
-        log_queue.put(None)  # Stop signal
-        worker_thread.join()
+    #app.run(debug=True, threaded=True)
