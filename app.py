@@ -45,7 +45,7 @@ def init_db():
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS logs (
                     id SERIAL PRIMARY KEY,
-                    student_id TEXT NOT NULL REFERENCES students(student_id),
+                    student_id INTEGER NOT NULL REFERENCES students(student_id),
                     timestamp TIMESTAMP NOT NULL,
                     page_number INTEGER NOT NULL,
                     log_data TEXT NOT NULL
