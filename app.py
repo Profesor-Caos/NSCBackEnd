@@ -31,10 +31,12 @@ def init_db():
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
+            cursor.execute('DROP TABLE IF EXISTS students')
+
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS students (
                     id SERIAL PRIMARY KEY,
-                    student_id TEXT UNIQUE NOT NULL
+                    student_id INTEGER UNIQUE NOT NULL
                 );
             ''')
             
@@ -70,7 +72,7 @@ def add_student():
             conn.commit()
         return jsonify({"message": "Student added successfully"}), 201
     except psycopg2.Error as e:
-        return jsonify({"error": "StudentID already exists - " + str(e) }), 400
+        return jsonify({"error": str(e) }), 400
     
 # Endpoint to list all students
 @app.route('/students', methods=['GET'])
