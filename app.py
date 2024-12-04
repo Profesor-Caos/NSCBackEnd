@@ -68,7 +68,7 @@ def add_student():
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO students (student_id) VALUES (%s)", (student_id))
+            cursor.execute("INSERT INTO students (student_id) VALUES (%s)", (student_id,))
             conn.commit()
         return jsonify({"message": "Student added successfully"}), 201
     except psycopg2.Error as e:
