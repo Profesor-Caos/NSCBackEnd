@@ -31,6 +31,7 @@ def init_db():
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
+            cursor.execute('DROP TABLE IF EXISTS logs')
             cursor.execute('DROP TABLE IF EXISTS students')
 
             cursor.execute('''
@@ -40,7 +41,6 @@ def init_db():
                 );
             ''')
             
-            cursor.execute('DROP TABLE IF EXISTS logs')
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS logs (
