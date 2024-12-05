@@ -23,6 +23,11 @@ logging.basicConfig(
 def list_students():
     return database.list_students()
 
+# Endpoint to get a specific student
+@app.route('/students/<int:student_id>', methods=['GET'])
+def get_student(student_id):
+    return database.get_student(student_id)
+
 # Endpoint to add a log entry
 @app.route('/logs', methods=['POST'])
 def add_log():

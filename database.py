@@ -66,6 +66,24 @@ def list_students():
         data = [{"id": row[0], "StudentID": row[1], "GradeLevel": row[2], "TestGroup": row[3]} for row in rows]
     return jsonify(data)
 
+def get_student(student_id):
+    if student_id < 100000 or student_id > 999999:
+        return jsonify({"error": "Student ID outside the acceptable range"}), 400
+    
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM students WHERE student_id = %s", (student_id,))
+            row = cursor.fetchone()
+            return jsonify({
+                "ID" : row[0],
+                "StudentID" : row[1],
+                "GradeLevel" : row[2],
+                "TestGroup": row[3]
+            })
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e) }), 400
+
 def add_log(request):
     data = request.json
     student_id = data.get('StudentID')
