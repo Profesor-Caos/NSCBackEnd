@@ -21,7 +21,7 @@ logging.basicConfig(
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-students_file_name = "Student list - Sheet 1"
+students_file_name = "Student list - Sheet 1.csv"
 
 def get_db_connection():
     """Create a new database connection."""
