@@ -6,8 +6,10 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2.extras import execute_values, DictCursor
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 logging.basicConfig(
     level=logging.INFO,
