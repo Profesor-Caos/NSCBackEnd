@@ -63,7 +63,7 @@ def list_students():
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM students")
         rows = cursor.fetchall()
-        data = [{"id": row[0], "StudentID": row[1], "TestGroup": row[2]} for row in rows]
+        data = [{"id": row[0], "StudentID": row[1], "GradeLevel": row[2], "TestGroup": row[3]} for row in rows]
     return jsonify(data)
 
 def add_log(request):
