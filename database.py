@@ -4,6 +4,7 @@ import sys
 import os
 from dotenv import load_dotenv
 from flask import jsonify
+from datetime import datetime
 import psycopg2
 from psycopg2.extras import execute_values, DictCursor
 
@@ -76,7 +77,7 @@ def get_student(student_id):
             cursor.execute("SELECT * FROM students WHERE student_id = %s", (student_id,))
             row = cursor.fetchone()
             if row is None:
-                return jsonify({"error": f"Student ID {student_id} does not exist."}), 494
+                return jsonify({"error": f"Student ID {student_id} does not exist."}), 404
             
             return jsonify({
                 "ID" : row[0],
