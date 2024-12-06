@@ -75,6 +75,9 @@ def get_student(student_id):
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM students WHERE student_id = %s", (student_id,))
             row = cursor.fetchone()
+            if row is None:
+                return jsonify({"error": f"Student ID {student_id} does not exist."}), 494
+            
             return jsonify({
                 "ID" : row[0],
                 "StudentID" : row[1],
