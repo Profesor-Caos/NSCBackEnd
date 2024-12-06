@@ -110,7 +110,7 @@ def add_log(request):
             cursor = conn.cursor()
             cursor.execute("INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES (%s, %s, %s, %s)", (student_id, timestamp, page_number, log_data))
             conn.commit()
-        return jsonify({"message": "Student added successfully"}), 201
+        return jsonify({"message": "Log posted successfully"}), 201
     except psycopg2.Error as e:
         return jsonify({"error": str(e) }), 400
 
