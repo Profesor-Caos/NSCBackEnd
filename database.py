@@ -88,17 +88,9 @@ def get_student_sheet(sheet_id):
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM students WHERE sheet_id = %s", (sheet_id,))
-            row = cursor.fetchone()
-            if row is None:
-                return jsonify({"error": f"Sheet ID {sheet_id} does not exist."}), 404
-            
-            return jsonify({
-                "ID" : row[0],
-                "StudentID" : row[1],
-                "GradeLevel" : row[2],
-                "TestGroup": row[3],
-                "SheetID" : row[4]
-            })
+            rows = cursor.fetchall()
+            data = [{"id": row[0], "StudentID": row[1], "GradeLevel": row[2], "TestGroup": row[3], "SheetID": row[4]} for row in rows]
+            return jsonify(data)
     except psycopg2.Error as e:
         return jsonify({"error": str(e) }), 400
     
