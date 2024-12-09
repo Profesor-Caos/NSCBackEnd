@@ -147,7 +147,7 @@ def get_logs_for_student(student_id):
                 "ID": row[0],
                 "StudentID": row[1],
                 "Timestamp": row[2],
-                "TimePassed": row[3],
+                "TimePassed": timedelta_to_string(row[3]),
                 "PageNumber": row[4],
                 "LogData": row[5]
             }
@@ -164,10 +164,21 @@ def list_logs():
                 "ID": row[0],
                 "StudentID": row[1],
                 "Timestamp": row[2],
-                "TimePassed": row[3],
+                "TimePassed": timedelta_to_string(row[3]),
                 "PageNumber": row[4],
                 "LogData": row[5]
             }
             for row in cursor.fetchall()
         ]
     return jsonify(logs)
+
+def timedelta_to_string(td):
+    total_seconds = int(td.total_seconds())
+    days, remainder = divmod(total_seconds, 86400)  # 86400 seconds in a day
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    milliseconds = td.microseconds // 1000
+
+    if days > 0:
+        return f"{days} {hours}:{minutes:02}:{seconds:02}.{milliseconds:03}"
+    return f"{hours}:{minutes:02}:{seconds:02}.{milliseconds:03}"
