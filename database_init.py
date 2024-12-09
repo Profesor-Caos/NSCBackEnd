@@ -53,7 +53,8 @@ def insert_students(values):
     except psycopg2.Error as e:
         print(f"Database error: {e}")
 
-database.init_db()  # Initialize the database
-populate_students_table(STUDENTS_FILE)
-populate_students_table(STUDENTS_FILE_2)
-add_test_IDs()
+# database.init_db()  # Initialize the database
+# populate_students_table(STUDENTS_FILE)
+# populate_students_table(STUDENTS_FILE_2)
+# add_test_IDs()
+database.reset_logs()

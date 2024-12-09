@@ -50,6 +50,7 @@ def init_db():
                     id SERIAL PRIMARY KEY,
                     student_id INTEGER NOT NULL REFERENCES students(student_id),
                     timestamp TIMESTAMP NOT NULL,
+                    time_passed INTERVAL NOT NULL,
                     page_number INTEGER NOT NULL,
                     log_data TEXT NOT NULL
                 );
@@ -58,6 +59,28 @@ def init_db():
             conn.commit()
     except Exception as e:
         logging.error("Error initializing DB - " + str(e))
+
+def reset_logs():
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute('DROP TABLE IF EXISTS logs')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS logs (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL REFERENCES students(student_id),
+                    timestamp TIMESTAMP NOT NULL,
+                    time_passed INTERVAL NOT NULL,
+                    page_number INTEGER NOT NULL,
+                    log_data TEXT NOT NULL
+                );
+            ''')
+
+            conn.commit()
+    except Exception as e:
+        logging.error("Error resetting logs - " + str(e))
     
 def list_students():
     with get_db_connection() as conn:
@@ -92,11 +115,12 @@ def add_log(request):
     data = request.json
     student_id = data.get('StudentID')
     timestamp = data.get('Timestamp')
+    time_passed = data.get("TimePassed")
     page_number = data.get('PageNumber')
     log_data = data.get('LogData')
 
-    if not all([student_id, timestamp, page_number, log_data]):
-        return jsonify({"error": "StudentID, Timestamp, PageNumber, and LogData are required"}), 400
+    if not all([student_id, timestamp, time_passed, page_number, log_data]):
+        return jsonify({"error": "StudentID, Timestamp, TimePassed, PageNumber, and LogData are required"}), 400
 
     # Validate timestamp format
     try:
@@ -108,7 +132,7 @@ def add_log(request):
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO logs (student_id, timestamp, page_number, log_data) VALUES (%s, %s, %s, %s)", (student_id, timestamp, page_number, log_data))
+            cursor.execute("INSERT INTO logs (student_id, timestamp, time_passed, page_number, log_data) VALUES (%s, %s, %s, %s, %s)", (student_id, timestamp, time_passed, page_number, log_data))
             conn.commit()
         return jsonify({"message": "Log posted successfully"}), 201
     except psycopg2.Error as e:
@@ -123,8 +147,9 @@ def get_logs_for_student(student_id):
                 "ID": row[0],
                 "StudentID": row[1],
                 "Timestamp": row[2],
-                "PageNumber": row[3],
-                "LogData": row[4]
+                "TimePassed": row[3],
+                "PageNumber": row[4],
+                "LogData": row[5]
             }
             for row in cursor.fetchall()
         ]
@@ -139,8 +164,9 @@ def list_logs():
                 "ID": row[0],
                 "StudentID": row[1],
                 "Timestamp": row[2],
-                "PageNumber": row[3],
-                "LogData": row[4]
+                "TimePassed": row[3],
+                "PageNumber": row[4],
+                "LogData": row[5]
             }
             for row in cursor.fetchall()
         ]
