@@ -5,6 +5,7 @@ from psycopg2.extras import execute_values, DictCursor
 
 STUDENTS_FILE = "Student list - Sheet1.csv"
 STUDENTS_FILE_2 = "Student list - Sheet2.csv"
+STUDENTS_FILE_3 = "Student list - Sheet3.csv"
 
 def distribute_test_groups(students):
     grouped_students = {}
@@ -25,21 +26,21 @@ def distribute_test_groups(students):
 
 def add_test_IDs():
 
-    values = [(111111, 0, 1), (222222, 0, 2), (333333, 0, 3)]
+    values = [(111111, 0, 1, 0), (222222, 0, 2, 0), (333333, 0, 3, 0), (444444, 0, 1, 0), (555555, 0, 2, 0), (666666, 0, 3, 0)]
     insert_students(values)
 
-def populate_students_table(csv_file):
+def populate_students_table(csv_file, sheet_id):
     with open(csv_file, newline='') as file:
         reader = csv.DictReader(file)
         students = [{'student_id': int(row['IDs']), 'grade_level': int(row['Grade'])} for row in reader]
 
     distributed_students = distribute_test_groups(students)
-    values = [(s['student_id'], s['grade_level'], s['test_group']) for s in distributed_students]
+    values = [(s['student_id'], s['grade_level'], s['test_group'], sheet_id) for s in distributed_students]
     insert_students(values)
 
 def insert_students(values):
     insert_query = """
-        INSERT INTO students (student_id, grade_level, test_group)
+        INSERT INTO students (student_id, grade_level, test_group, sheet_id)
         VALUES %s
         ON CONFLICT (student_id) DO NOTHING;
     """
@@ -53,8 +54,9 @@ def insert_students(values):
     except psycopg2.Error as e:
         print(f"Database error: {e}")
 
-# database.init_db()  # Initialize the database
-# populate_students_table(STUDENTS_FILE)
-# populate_students_table(STUDENTS_FILE_2)
-# add_test_IDs()
-database.reset_logs()
+database.init_db()  # Initialize the database
+populate_students_table(STUDENTS_FILE, 1)
+populate_students_table(STUDENTS_FILE_2, 2)
+populate_students_table(STUDENTS_FILE_3, 3)
+add_test_IDs()
+# database.reset_logs()

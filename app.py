@@ -30,6 +30,11 @@ def list_students():
 def get_student(student_id):
     return database.get_student(student_id)
 
+# Endpoint to list all students for a sheet
+@app.route('/students/<int:sheet_id>', method=['GET'])
+def get_student_set(sheet_id):
+    return database.get_student_sheet(sheet_id)
+
 # Endpoint to add a log entry
 @app.route('/logs', methods=['POST'])
 def add_log():

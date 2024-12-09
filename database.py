@@ -40,7 +40,8 @@ def init_db():
                     id SERIAL PRIMARY KEY,
                     student_id INTEGER UNIQUE NOT NULL,
                     grade_level INTEGER NOT NULL,
-                    test_group INTEGER NOT NULL
+                    test_group INTEGER NOT NULL,
+                    sheet_id INTEGER NOT NULL
                 );
             ''')
             
@@ -81,13 +82,32 @@ def reset_logs():
             conn.commit()
     except Exception as e:
         logging.error("Error resetting logs - " + str(e))
+
+def get_student_sheet(sheet_id):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM students WHERE sheet_id = %s", (sheet_id,))
+            row = cursor.fetchone()
+            if row is None:
+                return jsonify({"error": f"Sheet ID {sheet_id} does not exist."}), 404
+            
+            return jsonify({
+                "ID" : row[0],
+                "StudentID" : row[1],
+                "GradeLevel" : row[2],
+                "TestGroup": row[3],
+                "SheetID" : row[4]
+            })
+    except psycopg2.Error as e:
+        return jsonify({"error": str(e) }), 400
     
 def list_students():
     with get_db_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM students")
         rows = cursor.fetchall()
-        data = [{"id": row[0], "StudentID": row[1], "GradeLevel": row[2], "TestGroup": row[3]} for row in rows]
+        data = [{"id": row[0], "StudentID": row[1], "GradeLevel": row[2], "TestGroup": row[3], "SheetID": row[4]} for row in rows]
     return jsonify(data)
 
 def get_student(student_id):
@@ -106,7 +126,8 @@ def get_student(student_id):
                 "ID" : row[0],
                 "StudentID" : row[1],
                 "GradeLevel" : row[2],
-                "TestGroup": row[3]
+                "TestGroup": row[3],
+                "SheetID" : row[4]
             })
     except psycopg2.Error as e:
         return jsonify({"error": str(e) }), 400
