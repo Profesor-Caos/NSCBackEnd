@@ -31,7 +31,7 @@ def get_student(student_id):
     return database.get_student(student_id)
 
 # Endpoint to list all students for a sheet
-@app.route('/students/<int:sheet_id>', method=['GET'])
+@app.route('/student_sheet/<int:sheet_id>', method=['GET'])
 def get_student_set(sheet_id):
     return database.get_student_sheet(sheet_id)
 
